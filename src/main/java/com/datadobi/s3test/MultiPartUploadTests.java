@@ -1,3 +1,21 @@
+/*
+ *
+ *  Copyright 2025 Datadobi
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
 package com.datadobi.s3test;
 
 import com.datadobi.s3test.s3.S3TestBase;
@@ -19,32 +37,6 @@ public class MultiPartUploadTests extends S3TestBase {
     private static final int MB = 1024 * 1024;
 
     public MultiPartUploadTests() throws IOException {
-    }
-
-    @Test
-    public void testMultipartPut() throws IOException {
-//        Bucket b = getBucket();
-//
-//        long size = 273;
-//        ObjectSummary putInfo = b.putObject(
-//                "foo",
-//                new DummyInputStream(size),
-//                ObjectInfo.builder().size(size).build(),
-//                MultiPartCopyOption.create(
-//                        64,
-//                        10000
-//                )
-//        );
-//        assertTrue(b.objectExists("foo"));
-//
-//        try (ObjectInputStream in = b.getObject("foo")) {
-//            byte[] content = in.readAllBytes();
-//            Files.write(Path.of("foo.blob"), content);
-//        }
-//
-//        ObjectInfo info = b.getObjectInfo("foo", null);
-//        assertEquals(size, info.size());
-//        assertEquals(putInfo.eTag(), info.eTag());
     }
 
     @Test

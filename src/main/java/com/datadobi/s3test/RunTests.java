@@ -38,12 +38,8 @@ import java.util.regex.Pattern;
 
 public class RunTests {
     public static void main(String[] args) throws InitializationError, IOException {
-        boolean baseTests = true;
-        boolean lockingTests = false;
-        boolean versioningTests = false;
         String include = null;
         String exclude = null;
-        Duration ecDelay = null;
 
         int i = 0;
         for (; i < args.length; i++) {
@@ -52,43 +48,22 @@ public class RunTests {
                 break;
             }
 
-            if (arg.equals("-a") || arg.equals("--all-tests")) {
-                baseTests = true;
-                lockingTests = true;
-                versioningTests = true;
-            } else if (arg.equals("-b") || arg.equals("--no-base-tests")) {
-                baseTests = false;
-            } else if (arg.equals("-e") || arg.equals("--exclude")) {
+            if (arg.equals("-e") || arg.equals("--exclude")) {
                 exclude = args[++i];
             } else if (arg.equals("-i") || arg.equals("--include")) {
                 include = args[++i];
-            } else if (arg.equals("-l") || arg.equals("--locking-tests")) {
-                lockingTests = true;
-            } else if (arg.equals("-v") || arg.equals("--versioning-tests")) {
-                versioningTests = true;
-            } else if (arg.equals("-d") || arg.equals("--eventual-consistency")) {
-                ecDelay = Duration.parse(args[++i]);
             }
         }
 
         if (i == args.length) {
             System.err.println("Usage: RunTests [options] S3_URI");
             System.err.println("Options:");
-            System.err.println("  -a --all-tests          Enable all tests");
-            System.err.println("  -b --no-base-tests      Disable base tests");
             System.err.println("  -e --exclude PATTERN    Exclude test matching pattern");
             System.err.println("  -i --include PATTERN    Include test matching pattern");
-            System.err.println("  -l --locking-tests      Enable locking tests");
-            System.err.println("  -s --s3-tests           Enable low-level S3 tests");
-            System.err.println("  -v --versioning-tests   Enable versioning tests");
             System.exit(1);
         }
 
         var target = ServiceDefinition.fromURI(args[i++]);
-
-        if (ecDelay != null) {
-            target = target.toBuilder().eventualConsistencyDelay(ecDelay).build();
-        }
 
         S3TestBase.DEFAULT = target;
 
@@ -97,25 +72,17 @@ public class RunTests {
 
         List<Class<?>> classes = new ArrayList<>();
 
-        if (baseTests) {
-            classes.add(ChecksumTests.class);
-            classes.add(DeleteObjectTests.class);
-            classes.add(GetObjectTests.class);
-            classes.add(ListObjectsTests.class);
-            classes.add(ListBucketsTests.class);
-            classes.add(PutObjectTests.class);
-            classes.add(MultiPartUploadTests.class);
-            classes.add(PrefixDelimiterTests.class);
-        }
-
-        if (lockingTests) {
-//            classes.add(S3ObjectLockingAssumptionsOnRetentionEnabledBucketTestST.class);
-//            classes.add(S3ObjectLockingAssumptionsTestST.class);
-        }
-
-        if (versioningTests) {
-            // classes.add(S3ObjectVersioningAssumptionsTestST.class);
-        }
+        classes.add(ChecksumTests.class);
+        classes.add(ConditionalRequestsTest.class);
+        classes.add(DeleteObjectsTests.class);
+        classes.add(DeleteObjectTests.class);
+        classes.add(GetObjectTests.class);
+        classes.add(ListBucketsTests.class);
+        classes.add(ListObjectsTests.class);
+        classes.add(MultiPartUploadTests.class);
+        classes.add(ObjectKeyTests.class);
+        classes.add(PrefixDelimiterTests.class);
+        classes.add(PutObjectTests.class);
 
         JUnitCore junit = new JUnitCore();
         junit.addListener(new TextListener());

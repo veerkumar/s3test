@@ -32,8 +32,8 @@ import static com.datadobi.s3test.s3.ServiceDefinition.Restriction.PUT_OBJECT_IF
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class ConditionalRequests extends S3TestBase {
-    public ConditionalRequests() throws IOException {
+public class ConditionalRequestsTest extends S3TestBase {
+    public ConditionalRequestsTest() throws IOException {
     }
 
     @Test

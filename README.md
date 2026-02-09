@@ -23,7 +23,7 @@ This slows down test execution, but improves test isolation.
 ### Test Runner
 
 This project contains a simple wrapper test runner in the `com.datadobi.s3test.RunTests` class.
-This can be launched either from an IDE or by using `gradlew run`.
+This can be launched either from an IDE or by using `gradlew run --console=plain --args="<test_args>"`.
 
 Individual test cases can be explictly included or excluded using the `-i`/`--include` and `-e`/`--exclude` command line arguments.
 

@@ -47,12 +47,15 @@ public class WireLogger {
             return;
         }
 
+        Path logFile = path.resolve("wire.log");
+        Files.deleteIfExists(logFile);
+
         ConfigurationBuilder<BuiltConfiguration> configBuilder =
                 ConfigurationBuilderFactory.newConfigurationBuilder();
         Configuration configuration = configBuilder
                 .add(configBuilder
                         .newAppender("wire", "File")
-                        .addAttribute("fileName", path.resolve("wire.log"))
+                        .addAttribute("fileName", logFile)
                         .add(configBuilder.newLayout("PatternLayout").addAttribute("pattern", "%m%n")))
                 .add(configBuilder.newRootLogger(Level.OFF))
                 .add(configBuilder.newLogger("org.apache.http.wire")

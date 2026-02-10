@@ -137,7 +137,6 @@ public class ConditionalRequestTests extends S3TestBase {
             if (!target.hasQuirk(PUT_OBJECT_IF_MATCH_ETAG_NOT_SUPPORTED)) {
                 assertEquals("bar", content);
                 assertEquals(overwritePutResponse.eTag(), getResponse.eTag());
-                fail("PutObject using 'If-Match: \"<etag>\"' should fail if object etag does not match");
             }
         } catch (S3Exception e) {
             if (!target.hasQuirk(PUT_OBJECT_IF_MATCH_ETAG_NOT_SUPPORTED)) {

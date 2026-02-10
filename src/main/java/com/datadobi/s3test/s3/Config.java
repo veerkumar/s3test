@@ -9,10 +9,7 @@ import java.util.EnumSet;
 import java.util.Locale;
 
 public record Config(ImmutableSet<Quirk> quirks) {
-    public static final Config AWS_CONFIG = new Config(ImmutableSet.of(
-            Quirk.PUT_OBJECT_IF_NONE_MATCH_ETAG_NOT_SUPPORTED,
-            Quirk.PUT_OBJECT_IF_MATCH_ETAG_NOT_SUPPORTED
-    ));
+    public static final Config AWS_CONFIG = new Config(ImmutableSet.of());
 
     public static Config loadFromToml(Path path) {
         var quirks = EnumSet.noneOf(Quirk.class);

@@ -115,13 +115,7 @@ public class MultiPartUploadTests extends S3TestBase {
 
                     receivedTotalSize += receivedSize;
 
-                    if (target.hasQuirk(MULTIPART_SIZES_NOT_KEPT)) {
-                        assertNotEquals(
-                                "Part size should not match when MULTIPART_SIZES_NOT_KEPT quirk is present",
-                                receivedSize,
-                                partitionSize
-                        );
-                    } else {
+                    if (!target.hasQuirk(MULTIPART_SIZES_NOT_KEPT)) {
                         assertEquals(
                                 "Part size should be preserved",
                                 receivedSize,

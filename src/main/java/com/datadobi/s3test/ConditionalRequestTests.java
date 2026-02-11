@@ -54,15 +54,15 @@ public class ConditionalRequestTests extends S3TestBase {
                 content = new String(response.readAllBytes(), StandardCharsets.UTF_8);
             }
             if (!target.hasQuirk(PUT_OBJECT_IF_NONE_MATCH_STAR_NOT_SUPPORTED)) {
-                assertEquals("bar", content);
-                assertEquals(overwritePutResponse.eTag(), getResponse.eTag());
+                assertEquals(String.format("Content mismatch (expected: %s, received: %s)", "bar", content), "bar", content);
+                assertEquals(String.format("ETag mismatch (expected: %s, received: %s)", overwritePutResponse.eTag(), getResponse.eTag()), overwritePutResponse.eTag(), getResponse.eTag());
                 fail("PutObject using 'If-None-Match: *' should fail if object already exists");
             }
         } catch (S3Exception e) {
             if (target.hasQuirk(PUT_OBJECT_IF_NONE_MATCH_STAR_NOT_SUPPORTED)) {
-                assertEquals(501, e.statusCode());
+                assertEquals(String.format("Status code mismatch (expected: %s, received: %s)", 501, e.statusCode()), 501, e.statusCode());
             } else {
-                assertEquals(412, e.statusCode());
+                assertEquals(String.format("Status code mismatch (expected: %s, received: %s)", 412, e.statusCode()), 412, e.statusCode());
             }
         }
     }
@@ -89,15 +89,15 @@ public class ConditionalRequestTests extends S3TestBase {
                 content = new String(response.readAllBytes(), StandardCharsets.UTF_8);
             }
             if (target.hasQuirk(PUT_OBJECT_IF_NONE_MATCH_ETAG_NOT_SUPPORTED)) {
-                assertEquals("bar", content);
-                assertEquals(overwritePutResponse.eTag(), getResponse.eTag());
+                assertEquals(String.format("Content mismatch (expected: %s, received: %s)", "bar", content), "bar", content);
+                assertEquals(String.format("ETag mismatch (expected: %s, received: %s)", overwritePutResponse.eTag(), getResponse.eTag()), overwritePutResponse.eTag(), getResponse.eTag());
                 fail("PutObject using 'If-None-Match: \"<etag>\"' should fail if object already exists");
             }
         } catch (S3Exception e) {
             if (target.hasQuirk(PUT_OBJECT_IF_NONE_MATCH_ETAG_NOT_SUPPORTED)) {
-                assertEquals(501, e.statusCode());
+                assertEquals(String.format("Status code mismatch (expected: %s, received: %s)", 501, e.statusCode()), 501, e.statusCode());
             } else {
-                assertEquals(412, e.statusCode());
+                assertEquals(String.format("Status code mismatch (expected: %s, received: %s)", 412, e.statusCode()), 412, e.statusCode());
             }
         }
     }
@@ -122,15 +122,15 @@ public class ConditionalRequestTests extends S3TestBase {
                 content = new String(response.readAllBytes(), StandardCharsets.UTF_8);
             }
             if (!target.hasQuirk(PUT_OBJECT_IF_MATCH_ETAG_NOT_SUPPORTED)) {
-                assertEquals("bar", content);
-                assertEquals(overwritePutResponse.eTag(), getResponse.eTag());
+                assertEquals(String.format("Content mismatch (expected: %s, received: %s)", "bar", content), "bar", content);
+                assertEquals(String.format("ETag mismatch (expected: %s, received: %s)", overwritePutResponse.eTag(), getResponse.eTag()), overwritePutResponse.eTag(), getResponse.eTag());
                 fail("PutObject using 'If-Match: \"<etag>\"' should fail if object etag does not match");
             }
         } catch (S3Exception e) {
             if (!target.hasQuirk(PUT_OBJECT_IF_MATCH_ETAG_NOT_SUPPORTED)) {
-                assertEquals(501, e.statusCode());
+                assertEquals(String.format("Status code mismatch (expected: %s, received: %s)", 501, e.statusCode()), 501, e.statusCode());
             } else {
-                assertEquals(412, e.statusCode());
+                assertEquals(String.format("Status code mismatch (expected: %s, received: %s)", 412, e.statusCode()), 412, e.statusCode());
             }
         }
     }

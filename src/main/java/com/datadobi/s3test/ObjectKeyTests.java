@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2025 Datadobi
+ *  Copyright Datadobi
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ package com.datadobi.s3test;
 
 import com.datadobi.s3test.s3.S3;
 import com.datadobi.s3test.s3.S3TestBase;
+import com.datadobi.s3test.s3.SkipForQuirks;
 import com.datadobi.s3test.util.Pair;
 import com.datadobi.s3test.util.TLS;
 import com.google.common.collect.ImmutableList;
@@ -54,7 +55,6 @@ import static com.datadobi.s3test.util.Utf8TestConstants.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -84,8 +84,8 @@ public class ObjectKeyTests extends S3TestBase {
     }
 
     @Test
+    @SkipForQuirks({KEYS_WITH_CODEPOINTS_OUTSIDE_BMP_REJECTED})
     public void testKeyNamesWithHighCodePointsAreAccepted() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_CODEPOINTS_OUTSIDE_BMP_REJECTED));
 
         var clappingHands = utf8Encode(CLAPPING_HANDS);
         var keyPrefix = "high-codepoints-";
@@ -104,8 +104,8 @@ public class ObjectKeyTests extends S3TestBase {
     }
 
     @Test
+    @SkipForQuirks({KEYS_WITH_SLASHES_CREATE_IMPLICIT_OBJECTS})
     public void thatPathLikeKeysDontCreateDirectoryObjects() {
-        assumeFalse(target.hasQuirk(KEYS_WITH_SLASHES_CREATE_IMPLICIT_OBJECTS));
 
         bucket.putObject("a/b/c", "abcd");
 
@@ -114,8 +114,8 @@ public class ObjectKeyTests extends S3TestBase {
     }
 
     @Test
+    @SkipForQuirks({KEYS_WITH_INVALID_UTF8_NOT_REJECTED})
     public void testSurrogatePairsAreRejected() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_INVALID_UTF8_NOT_REJECTED));
 
         //surrogates in Unicode are a compatibility mechanism intended for UTF-16 encoding.
         //surrogates are always expected to come in pairs (a high surrogate followed by a low surrogate) and one pair maps to one codepoint outside of the BMP
@@ -151,8 +151,8 @@ public class ObjectKeyTests extends S3TestBase {
 
 
     @Test
+    @SkipForQuirks({KEYS_WITH_CODEPOINT_MIN_REJECTED})
     public void testCodePointMinIsAccepted() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_CODEPOINT_MIN_REJECTED));
 
         var key = "min-codepoint-\u0001.key";
         var keyBytes = key.getBytes(UTF_8);
@@ -162,8 +162,8 @@ public class ObjectKeyTests extends S3TestBase {
     }
 
     @Test
+    @SkipForQuirks({KEYS_WITH_NULL_NOT_REJECTED})
     public void testNullIsRejected() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_NULL_NOT_REJECTED));
 
         var nullEncoding = new byte[]{0};
 
@@ -177,8 +177,8 @@ public class ObjectKeyTests extends S3TestBase {
     }
 
     @Test
+    @SkipForQuirks({KEYS_WITH_INVALID_UTF8_NOT_REJECTED})
     public void testOverlongNullIsRejected() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_INVALID_UTF8_NOT_REJECTED));
 
         var nullEncoding = new byte[]{(byte) 0xC0, (byte) 0x80};
 
@@ -192,8 +192,8 @@ public class ObjectKeyTests extends S3TestBase {
     }
 
     @Test
+    @SkipForQuirks({KEYS_WITH_INVALID_UTF8_NOT_REJECTED})
     public void testOverlongEncodingsAreRejected() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_INVALID_UTF8_NOT_REJECTED));
 
         // https://en.wikipedia.org/wiki/UTF-8#Overlong_encodings
         // in theory, any codepoint can be encoded in 4 bytes in UTF-8, even if it _should_ be encoded in less bytes
@@ -260,9 +260,9 @@ public class ObjectKeyTests extends S3TestBase {
     }
 
     @Test
+    @SkipForQuirks({KEYS_WITH_NULL_ARE_TRUNCATED})
     public void thatServerSortsNullInUtf8Order() throws IOException {
         assumeTrue(target.hasQuirk(KEYS_WITH_NULL_NOT_REJECTED));
-        assumeFalse(target.hasQuirk(KEYS_WITH_NULL_ARE_TRUNCATED));
 
         var nullEncoding = "\0".getBytes(UTF_8);
         var capitalAEncoding = "A".getBytes(UTF_8);

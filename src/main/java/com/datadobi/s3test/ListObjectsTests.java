@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2025 Datadobi
+ *  Copyright Datadobi
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ package com.datadobi.s3test;
 
 import com.datadobi.s3test.s3.S3;
 import com.datadobi.s3test.s3.S3TestBase;
+import com.datadobi.s3test.s3.SkipForQuirks;
 import com.google.common.collect.ImmutableMap;
-import org.junit.Assume;
 import org.junit.Test;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.EncodingType;
@@ -33,9 +33,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.datadobi.s3test.s3.Quirk.*;
 import static com.datadobi.s3test.s3.S3.ListObjectsVersion.V1;
 import static com.datadobi.s3test.s3.S3.ListObjectsVersion.V2;
-import static com.datadobi.s3test.s3.Quirk.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -138,8 +138,8 @@ public class ListObjectsTests extends S3TestBase {
     public static final String CP_MAX = "\uDBFF\uDFFF";
 
     @Test
+    @SkipForQuirks({KEYS_WITH_CODEPOINTS_OUTSIDE_BMP_REJECTED})
     public void thatServerSortsInUtf8Binary() {
-        Assume.assumeFalse(target.hasQuirk(KEYS_WITH_CODEPOINTS_OUTSIDE_BMP_REJECTED));
 
         bucket.putObject(A, A);
         bucket.putObject(BEFORE_SURROGATES, BEFORE_SURROGATES);

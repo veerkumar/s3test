@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2025 Datadobi
+ *  Copyright Datadobi
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -189,9 +189,14 @@ public class RunTests {
         @Override
         public void testFinished(Description description) throws Exception {
             if (ignored) {
-                stdOut.println(" 🙈");
+                stdOut.print(" 🙈");
+                if (failure != null) {
+                    stdOut.print(": " + failure.getException().getMessage());
+                }
+                stdOut.println();
             } else if (failure != null) {
-                stdOut.println(" ❌");
+                stdOut.println(" ❌: " + failure.getException().getMessage());
+
                 if (logPath != null) {
                     Path logPath = Files.createDirectories(
                             this.logPath.resolve(description.getTestClass().getSimpleName())
@@ -202,8 +207,6 @@ public class RunTests {
                             failure.getTrace(),
                             StandardCharsets.UTF_8
                     );
-                } else {
-                    stdOut.println(failure.getTrimmedTrace());
                 }
             } else {
                 stdOut.println(" ✅");

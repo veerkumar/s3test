@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2025 Datadobi
+ *  Copyright Datadobi
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ package com.datadobi.s3test;
 
 import com.datadobi.s3test.s3.S3;
 import com.datadobi.s3test.s3.S3TestBase;
+import com.datadobi.s3test.s3.SkipForQuirks;
 import com.google.common.collect.ImmutableMap;
-import org.junit.Assume;
 import org.junit.Test;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.EncodingType;
@@ -33,9 +33,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.datadobi.s3test.s3.Quirk.*;
 import static com.datadobi.s3test.s3.S3.ListObjectsVersion.V1;
 import static com.datadobi.s3test.s3.S3.ListObjectsVersion.V2;
-import static com.datadobi.s3test.s3.Quirk.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -58,7 +58,12 @@ public class ListObjectsTests extends S3TestBase {
         }
 
         var keys = bucket.listObjectKeys(V2, 7);
-        assertEquals(generatedKeys, new HashSet<>(keys));
+        var actualKeys = new HashSet<>(keys);
+        assertEquals(
+                "ListObjectsV1 should return all generated keys",
+                generatedKeys,
+                actualKeys
+        );
     }
 
     /**
@@ -75,7 +80,12 @@ public class ListObjectsTests extends S3TestBase {
         }
 
         var keys = bucket.listObjectKeys(V2, 7);
-        assertEquals(generatedKeys, new HashSet<>(keys));
+        var actualKeys = new HashSet<>(keys);
+        assertEquals(
+                "ListObjectsV2 should return all generated keys",
+                generatedKeys,
+                actualKeys
+        );
     }
 
     /**
@@ -156,8 +166,8 @@ public class ListObjectsTests extends S3TestBase {
      * Expected: Keys are returned in UTF-8 binary order (or UTF-16 order if quirk); startAfter filtering works accordingly.
      */
     @Test
+    @SkipForQuirks({KEYS_WITH_CODEPOINTS_OUTSIDE_BMP_REJECTED})
     public void thatServerSortsInUtf8Binary() {
-        Assume.assumeFalse(target.hasQuirk(KEYS_WITH_CODEPOINTS_OUTSIDE_BMP_REJECTED));
 
         bucket.putObject(A, A);
         bucket.putObject(BEFORE_SURROGATES, BEFORE_SURROGATES);
@@ -166,19 +176,27 @@ public class ListObjectsTests extends S3TestBase {
         bucket.putObject(SURROGATE_PAIR2, SURROGATE_PAIR2);
 
         if (target.hasQuirk(KEYS_ARE_SORTED_IN_UTF16_BINARY_ORDER)) {
-            assertEquals(List.of(A, BEFORE_SURROGATES, SURROGATE_PAIR1, SURROGATE_PAIR2, AFTER_SURROGATES),
+            assertEquals("Keys should be sorted in UTF-16 binary order",
+                    List.of(A, BEFORE_SURROGATES, SURROGATE_PAIR1, SURROGATE_PAIR2, AFTER_SURROGATES),
                     bucket.listObjectKeys(V2, null, null));
-            assertEquals(List.of(SURROGATE_PAIR1, SURROGATE_PAIR2, AFTER_SURROGATES),
+            assertEquals("Keys after BEFORE_SURROGATES should be in UTF-16 order",
+                    List.of(SURROGATE_PAIR1, SURROGATE_PAIR2, AFTER_SURROGATES),
                     bucket.listObjectKeys(V2, null, BEFORE_SURROGATES));
-            assertEquals(List.of(SURROGATE_PAIR2, AFTER_SURROGATES), bucket.listObjectKeys(V2, null, SURROGATE_PAIR1));
-            assertEquals(List.of(AFTER_SURROGATES), bucket.listObjectKeys(V2, null, CP_MAX));
+            assertEquals("Keys after SURROGATE_PAIR1 should be in UTF-16 order",
+                    List.of(SURROGATE_PAIR2, AFTER_SURROGATES), bucket.listObjectKeys(V2, null, SURROGATE_PAIR1));
+            assertEquals("Keys after CP_MAX should be in UTF-16 order",
+                    List.of(AFTER_SURROGATES), bucket.listObjectKeys(V2, null, CP_MAX));
         } else {
-            assertEquals(List.of(A, BEFORE_SURROGATES, AFTER_SURROGATES, SURROGATE_PAIR1, SURROGATE_PAIR2),
+            assertEquals("Keys should be sorted in UTF-8 binary order",
+                    List.of(A, BEFORE_SURROGATES, AFTER_SURROGATES, SURROGATE_PAIR1, SURROGATE_PAIR2),
                     bucket.listObjectKeys(V2, null, null));
-            assertEquals(List.of(AFTER_SURROGATES, SURROGATE_PAIR1, SURROGATE_PAIR2),
+            assertEquals("Keys after BEFORE_SURROGATES should be in UTF-8 order",
+                    List.of(AFTER_SURROGATES, SURROGATE_PAIR1, SURROGATE_PAIR2),
                     bucket.listObjectKeys(V2, null, BEFORE_SURROGATES));
-            assertEquals(List.of(SURROGATE_PAIR2), bucket.listObjectKeys(V2, null, SURROGATE_PAIR1));
-            assertEquals(List.of(), bucket.listObjectKeys(V2, null, CP_MAX));
+            assertEquals("Keys after SURROGATE_PAIR1 should be in UTF-8 order",
+                    List.of(SURROGATE_PAIR2), bucket.listObjectKeys(V2, null, SURROGATE_PAIR1));
+            assertEquals("No keys should be after CP_MAX in UTF-8 order",
+                    List.of(), bucket.listObjectKeys(V2, null, CP_MAX));
         }
     }
 
@@ -201,22 +219,22 @@ public class ListObjectsTests extends S3TestBase {
                         .build()
         );
         // ETag shouldn't change since the object content did not change
-        assertEquals(putResponse.eTag(), copyResponse.copyObjectResult().eTag());
+        assertEquals("ETag should remain same after metadata-only copy", putResponse.eTag(), copyResponse.copyObjectResult().eTag());
 
         var headObjectResponse = bucket.headObject("key");
         // HEAD of the object should return the same ETag
-        assertEquals(copyResponse.copyObjectResult().eTag(), headObjectResponse.eTag());
+        assertEquals("HEAD should return same ETag as copy response", copyResponse.copyObjectResult().eTag(), headObjectResponse.eTag());
 
         var listV1Response = bucket.listObjectsV1(null, null);
         var listV2Response = bucket.listObjectsV2(null, null);
 
         // Listing should return the same etag
         if (target.hasQuirk(ETAG_EMPTY_AFTER_COPY_OBJECT)) {
-            assertEquals("\"\"", listV1Response.contents().getFirst().eTag());
-            assertEquals("\"\"", listV2Response.contents().getFirst().eTag());
+            assertEquals("ETag should be empty string after copy when quirk is present", "\"\"", listV1Response.contents().getFirst().eTag());
+            assertEquals("ETag should be empty string after copy when quirk is present", "\"\"", listV2Response.contents().getFirst().eTag());
         } else {
-            assertEquals(copyResponse.copyObjectResult().eTag(), listV1Response.contents().getFirst().eTag());
-            assertEquals(copyResponse.copyObjectResult().eTag(), listV2Response.contents().getFirst().eTag());
+            assertEquals("List V1 should return same ETag as copy response", copyResponse.copyObjectResult().eTag(), listV1Response.contents().getFirst().eTag());
+            assertEquals("List V2 should return same ETag as copy response", copyResponse.copyObjectResult().eTag(), listV2Response.contents().getFirst().eTag());
         }
     }
 
@@ -226,8 +244,8 @@ public class ListObjectsTests extends S3TestBase {
      */
     @Test
     public void testListEmpty() {
-        assertEquals(List.of(), bucket.listObjectKeys(V1));
-        assertEquals(List.of(), bucket.listObjectKeys(V2));
+        assertEquals("V1 should return empty list for empty bucket", List.of(), bucket.listObjectKeys(V1));
+        assertEquals("V2 should return empty list for empty bucket", List.of(), bucket.listObjectKeys(V2));
     }
 
     /**
@@ -241,8 +259,8 @@ public class ListObjectsTests extends S3TestBase {
             bucket.putObject(key, key);
         }
 
-        assertEquals(keys, bucket.listObjectKeys(V1));
-        assertEquals(keys, bucket.listObjectKeys(V2));
+        assertEquals("V1 should return all keys", keys, bucket.listObjectKeys(V1));
+        assertEquals("V2 should return all keys", keys, bucket.listObjectKeys(V2));
     }
 
     private void validateListObjects(S3.ListObjectsVersion listObjectsVersion, Map<String, String> content) {
@@ -258,7 +276,7 @@ public class ListObjectsTests extends S3TestBase {
 
         var actualKeys = bucket.listObjectKeys(listObjectsVersion, 10);
 
-        assertEquals(expectedKeys, actualKeys);
+        assertEquals("Listed keys should match expected keys in UTF-8 binary order", expectedKeys, actualKeys);
     }
 
     /**
@@ -366,8 +384,8 @@ public class ListObjectsTests extends S3TestBase {
                 r -> r.maxKeys(10).marker("A/C").encodingType(EncodingType.URL)
         );
 
-        assertFalse(result.isTruncated());
-        assertTrue(result.contents().isEmpty());
+        assertFalse("Result should not be truncated", result.isTruncated());
+        assertTrue("Contents should be empty when marker is after all keys", result.contents().isEmpty());
     }
 
     /**
@@ -382,8 +400,8 @@ public class ListObjectsTests extends S3TestBase {
                 r -> r.maxKeys(10).marker("A/C").prefix("Z").encodingType(EncodingType.URL)
         );
 
-        assertFalse(result.isTruncated());
-        assertEquals(1, result.contents().size());
+        assertFalse("Result should not be truncated", result.isTruncated());
+        assertEquals("Should return one object matching prefix", 1, result.contents().size());
     }
 
     /**
@@ -398,7 +416,7 @@ public class ListObjectsTests extends S3TestBase {
                 r -> r.maxKeys(10).marker("Z/").prefix("A/").encodingType(EncodingType.URL)
         );
 
-        assertFalse(result.isTruncated());
-        assertEquals(0, result.contents().size());
+        assertFalse("Result should not be truncated", result.isTruncated());
+        assertEquals("Should return no objects when marker is after prefix", 0, result.contents().size());
     }
 }

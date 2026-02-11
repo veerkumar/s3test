@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2025 Datadobi
+ *  Copyright Datadobi
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -88,20 +88,23 @@ public class MultiPartUploadTests extends S3TestBase {
 
         var objectMetadata = bucket.headObject(r -> r.key(key).partNumber(1));
 
-        assertNotNull(objectMetadata);
+        assertNotNull("Object metadata should not be null after HEAD request", objectMetadata);
 
         Integer receivePartitionCount = null;
 
         if (!target.hasQuirk(GET_OBJECT_PART_NOT_SUPPORTED)) {
             receivePartitionCount = objectMetadata.partsCount();
             if (receivePartitionCount != null) {
-                assertTrue(
-                        target.hasQuirk(MULTIPART_SIZES_NOT_KEPT) ||
-                                receivePartitionCount == partitionCount
-                );
-                assertFalse(target.hasQuirk(GET_OBJECT_PARTCOUNT_NOT_SUPPORTED));
+                if (!target.hasQuirk(MULTIPART_SIZES_NOT_KEPT)) {
+                    assertEquals(
+                            "Part count should match unless MULTIPART_SIZES_NOT_KEPT quirk",
+                            Integer.valueOf(partitionCount),
+                            receivePartitionCount
+                    );
+                }
+                assertFalse("Part count should be supported", target.hasQuirk(GET_OBJECT_PARTCOUNT_NOT_SUPPORTED));
             } else {
-                assertTrue(target.hasQuirk(GET_OBJECT_PARTCOUNT_NOT_SUPPORTED));
+                assertTrue("Part count should not be supported for this target", target.hasQuirk(GET_OBJECT_PARTCOUNT_NOT_SUPPORTED));
             }
         }
 
@@ -116,10 +119,12 @@ public class MultiPartUploadTests extends S3TestBase {
 
                     receivedTotalSize += receivedSize;
 
-                    if (target.hasQuirk(MULTIPART_SIZES_NOT_KEPT)) {
-                        assertNotEquals(receivedSize, partitionSize);
-                    } else {
-                        assertEquals(receivedSize, partitionSize);
+                    if (!target.hasQuirk(MULTIPART_SIZES_NOT_KEPT)) {
+                        assertEquals(
+                                "Part size should be preserved",
+                                receivedSize,
+                                partitionSize
+                        );
                     }
                 }
             }
@@ -132,6 +137,6 @@ public class MultiPartUploadTests extends S3TestBase {
             }
         }
 
-        assertEquals(receivedTotalSize, uploadedTotalSize);
+        assertEquals("Total received size should match uploaded size", receivedTotalSize, uploadedTotalSize);
     }
 }

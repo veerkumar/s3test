@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2025 Datadobi
+ *  Copyright Datadobi
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 package com.datadobi.s3test;
 
 import com.datadobi.s3test.s3.S3TestBase;
-import org.junit.Assume;
+import com.datadobi.s3test.s3.SkipForQuirks;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -45,8 +45,8 @@ public class PutObjectTests extends S3TestBase {
     public void testPutObject() {
         var putResponse = bucket.putObject("foo", "bar");
         var headResponse = bucket.headObject("foo");
-        assertEquals(Long.valueOf(3), headResponse.contentLength());
-        assertEquals(putResponse.eTag(), headResponse.eTag());
+        assertEquals("Content length mismatch", Long.valueOf(3), headResponse.contentLength());
+        assertEquals("ETag should match PutObject response", putResponse.eTag(), headResponse.eTag());
     }
 
     /**
@@ -57,8 +57,8 @@ public class PutObjectTests extends S3TestBase {
     public void testPutEmptyObject() {
         var putResponse = bucket.putObject("foo", "");
         var headResponse = bucket.headObject("foo");
-        assertEquals(Long.valueOf(0), headResponse.contentLength());
-        assertEquals(putResponse.eTag(), headResponse.eTag());
+        assertEquals("Empty object should have content length of 0", Long.valueOf(0), headResponse.contentLength());
+        assertEquals("ETag should match PutObject response", putResponse.eTag(), headResponse.eTag());
     }
 
     /**
@@ -74,25 +74,23 @@ public class PutObjectTests extends S3TestBase {
         var eTag1 = putObjectResult1.eTag();
 
         try (var object = bucket.getObject(key)) {
-            assertEquals(eTag1, object.response().eTag());
+            assertEquals("ETag should match first put response", eTag1, object.response().eTag());
 
             var content = new String(object.readAllBytes(), StandardCharsets.UTF_8);
-            assertEquals(content1, content);
+            assertEquals("Content should match first put content", content1, content);
         }
 
         var content2 = "bb";
         var putObjectResult2 = bucket.putObject(key, content2);
-
-        assertNotNull(putObjectResult2);
         var eTag2 = putObjectResult2.eTag();
 
-        assertNotEquals(eTag1, eTag2);
+        assertNotEquals("ETag should change after content update", eTag1, eTag2);
 
         try (var object = bucket.getObject(key)) {
-            assertEquals(object.response().eTag(), eTag2);
+            assertEquals("ETag should match value from second PutObject response", object.response().eTag(), eTag2);
 
             var content = new String(object.readAllBytes(), StandardCharsets.UTF_8);
-            assertEquals(content2, content);
+            assertEquals("Content should match second PutObject content", content2, content);
         }
 
     }
@@ -120,8 +118,8 @@ public class PutObjectTests extends S3TestBase {
 
         try (var object = bucket.getObject("content-encoding-gzip")) {
             var bytes = object.readAllBytes();
-            assertEquals("gzip", object.response().contentEncoding());
-            assertArrayEquals(data, bytes);
+            assertEquals("Retrieved content encoding should match value from PutObject", "gzip", object.response().contentEncoding());
+            assertArrayEquals("Retrieved data should match uploaded gzip data", data, bytes);
         }
     }
 
@@ -144,8 +142,8 @@ public class PutObjectTests extends S3TestBase {
 
         try (var object = bucket.getObject("content-encoding-unknown")) {
             var bytes = object.readAllBytes();
-            assertEquals("dd-plain-no-encoding", object.response().contentEncoding());
-            assertEquals(xml, new String(bytes, StandardCharsets.UTF_8));
+            assertEquals("Retrieved content encoding should match value from PutObject", "dd-plain-no-encoding", object.response().contentEncoding());
+            assertEquals("Retrieved content should match uploaded content", xml, new String(bytes, StandardCharsets.UTF_8));
         }
     }
 
@@ -154,9 +152,8 @@ public class PutObjectTests extends S3TestBase {
      * Expected: GET returns Content-Type "text/empty" (unless CONTENT_TYPE_NOT_SET_FOR_KEYS_WITH_TRAILING_SLASH).
      */
     @Test
+    @SkipForQuirks({CONTENT_TYPE_NOT_SET_FOR_KEYS_WITH_TRAILING_SLASH})
     public void canSetContentTypeOnEmptyObjectWithKeyContainingTrailingSlash() throws IOException {
-
-        Assume.assumeFalse(target.hasQuirk(CONTENT_TYPE_NOT_SET_FOR_KEYS_WITH_TRAILING_SLASH));
 
         var data = new byte[0];
 
@@ -168,7 +165,7 @@ public class PutObjectTests extends S3TestBase {
         );
 
         try (var object = bucket.getObject("content-type/")) {
-            assertEquals("text/empty", object.response().contentType());
+            assertEquals("Retrieved content type should match value from PutObject", "text/empty", object.response().contentType());
         }
     }
 

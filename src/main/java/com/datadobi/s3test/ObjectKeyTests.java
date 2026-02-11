@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2025 Datadobi
+ *  Copyright Datadobi
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ package com.datadobi.s3test;
 
 import com.datadobi.s3test.s3.S3;
 import com.datadobi.s3test.s3.S3TestBase;
+import com.datadobi.s3test.s3.SkipForQuirks;
 import com.datadobi.s3test.util.Pair;
 import com.datadobi.s3test.util.TLS;
 import com.google.common.collect.ImmutableList;
@@ -54,7 +55,6 @@ import static com.datadobi.s3test.util.Utf8TestConstants.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -84,7 +84,7 @@ public class ObjectKeyTests extends S3TestBase {
         var status = putObject(target.signingRegion(), data, key.getBytes(UTF_8));
         assertThat(status).as("Status should indicate success").matches(s -> s / 100 == 2, "HTTP 2xx status");
         var keys = bucket.listObjectKeys(S3.ListObjectsVersion.V2);
-        assertThat(keys).contains(key);
+        assertThat(keys).as("Listed keys should contain the object that was written").contains(key);
     }
 
     /**
@@ -92,8 +92,8 @@ public class ObjectKeyTests extends S3TestBase {
      * Expected: HTTP 2xx; key with that codepoint appears in list (unless KEYS_WITH_CODEPOINTS_OUTSIDE_BMP_REJECTED).
      */
     @Test
+    @SkipForQuirks({KEYS_WITH_CODEPOINTS_OUTSIDE_BMP_REJECTED})
     public void testKeyNamesWithHighCodePointsAreAccepted() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_CODEPOINTS_OUTSIDE_BMP_REJECTED));
 
         var clappingHands = utf8Encode(CLAPPING_HANDS);
         var keyPrefix = "high-codepoints-";
@@ -108,7 +108,7 @@ public class ObjectKeyTests extends S3TestBase {
         var status = putObject(target.signingRegion(), data, keyPrefix.getBytes(UTF_8), clappingHands, keySuffix.getBytes(UTF_8));
         assertThat(status).as("Status should indicate success").matches(s -> s / 100 == 2, "HTTP 2xx status");
         var keys = bucket.listObjectKeys(S3.ListObjectsVersion.V2);
-        assertThat(keys).contains(expectedKey);
+        assertThat(keys).as("Listed keys should contain key with high codepoint").contains(expectedKey);
     }
 
     /**
@@ -116,13 +116,13 @@ public class ObjectKeyTests extends S3TestBase {
      * Expected: Exactly one key "a/b/c" returned; no implicit directory objects for "a" or "a/b" (unless quirk).
      */
     @Test
+    @SkipForQuirks({KEYS_WITH_SLASHES_CREATE_IMPLICIT_OBJECTS})
     public void thatPathLikeKeysDontCreateDirectoryObjects() {
-        assumeFalse(target.hasQuirk(KEYS_WITH_SLASHES_CREATE_IMPLICIT_OBJECTS));
 
         bucket.putObject("a/b/c", "abcd");
 
         var keys = bucket.listObjectKeys(S3.ListObjectsVersion.V2);
-        assertThat(keys).containsExactly("a/b/c");
+        assertThat(keys).as("Only the actual object should be listed").containsExactly("a/b/c");
     }
 
     /**
@@ -130,8 +130,8 @@ public class ObjectKeyTests extends S3TestBase {
      * Expected: HTTP status 4xx/5xx (rejection of invalid UTF-8 key).
      */
     @Test
+    @SkipForQuirks({KEYS_WITH_INVALID_UTF8_NOT_REJECTED})
     public void testSurrogatePairsAreRejected() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_INVALID_UTF8_NOT_REJECTED));
 
         //surrogates in Unicode are a compatibility mechanism intended for UTF-16 encoding.
         //surrogates are always expected to come in pairs (a high surrogate followed by a low surrogate) and one pair maps to one codepoint outside of the BMP
@@ -150,7 +150,7 @@ public class ObjectKeyTests extends S3TestBase {
                 .appendCodePoint(CLAPPING_HANDS_LOW_SURROGATE)
                 .toString();
         var stringFromSupplementaryCp = new StringBuilder().appendCodePoint(CLAPPING_HANDS).toString();
-        assertThat(stringFromSurrogates).isEqualTo(stringFromSupplementaryCp);
+        assertThat(stringFromSurrogates).as("Surrogate pair should equal supplementary codepoint").isEqualTo(stringFromSupplementaryCp);
 
         //create an invalid utf-8 byte sequence, encoding the surrogate pair
         var highSurrogate = utf8Encode(CLAPPING_HANDS_HIGH_SURROGATE);
@@ -171,8 +171,8 @@ public class ObjectKeyTests extends S3TestBase {
      * Expected: HTTP 2xx; key accepted (unless KEYS_WITH_CODEPOINT_MIN_REJECTED).
      */
     @Test
+    @SkipForQuirks({KEYS_WITH_CODEPOINT_MIN_REJECTED})
     public void testCodePointMinIsAccepted() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_CODEPOINT_MIN_REJECTED));
 
         var key = "min-codepoint-\u0001.key";
         var keyBytes = key.getBytes(UTF_8);
@@ -186,8 +186,8 @@ public class ObjectKeyTests extends S3TestBase {
      * Expected: HTTP 4xx/5xx (rejection); unless KEYS_WITH_NULL_NOT_REJECTED.
      */
     @Test
+    @SkipForQuirks({KEYS_WITH_NULL_NOT_REJECTED})
     public void testNullIsRejected() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_NULL_NOT_REJECTED));
 
         var nullEncoding = new byte[]{0};
 
@@ -205,8 +205,8 @@ public class ObjectKeyTests extends S3TestBase {
      * Expected: HTTP 4xx/5xx (invalid UTF-8 rejected).
      */
     @Test
+    @SkipForQuirks({KEYS_WITH_INVALID_UTF8_NOT_REJECTED})
     public void testOverlongNullIsRejected() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_INVALID_UTF8_NOT_REJECTED));
 
         var nullEncoding = new byte[]{(byte) 0xC0, (byte) 0x80};
 
@@ -224,8 +224,8 @@ public class ObjectKeyTests extends S3TestBase {
      * Expected: HTTP 4xx/5xx (overlong UTF-8 rejected).
      */
     @Test
+    @SkipForQuirks({KEYS_WITH_INVALID_UTF8_NOT_REJECTED})
     public void testOverlongEncodingsAreRejected() throws IOException {
-        assumeFalse(target.hasQuirk(KEYS_WITH_INVALID_UTF8_NOT_REJECTED));
 
         // https://en.wikipedia.org/wiki/UTF-8#Overlong_encodings
         // in theory, any codepoint can be encoded in 4 bytes in UTF-8, even if it _should_ be encoded in less bytes
@@ -273,9 +273,9 @@ public class ObjectKeyTests extends S3TestBase {
         //  the given strings should _not_ be equal to begin with
         //  but they should decompose to the same NFD decomposition
         for (var equivalentStrings : equivalentStringTuples) {
-            assertThat(new HashSet<>(equivalentStrings)).hasSize(equivalentStrings.size());
+            assertThat(new HashSet<>(equivalentStrings)).as("Equivalent strings should not be equal before normalization").hasSize(equivalentStrings.size());
             var normalized = equivalentStrings.stream().map(s -> Normalizer.normalize(s, Normalizer.Form.NFD)).collect(Collectors.toSet());
-            assertThat(normalized).hasSize(1); //should be normalized to the same form
+            assertThat(normalized).as("Strings should normalize to same form").hasSize(1); //should be normalized to the same form
         }
 
         for (var equivalentStrings : equivalentStringTuples) {
@@ -285,7 +285,7 @@ public class ObjectKeyTests extends S3TestBase {
 
             //check that we can retrieve
             var roundTrip = new String(bucket.getObjectContent(equivalentStrings.getFirst()), UTF_8);
-            assertThat(roundTrip).isEqualTo(testData);
+            assertThat(roundTrip).as("Retrieved content should match uploaded content").isEqualTo(testData);
 
 
             //trying the other keys should fail
@@ -300,9 +300,9 @@ public class ObjectKeyTests extends S3TestBase {
      * Expected: Keys sorted in UTF-8 order: "with-null-byte-\0.key" before "with-null-byte-A.key".
      */
     @Test
+    @SkipForQuirks({KEYS_WITH_NULL_ARE_TRUNCATED})
     public void thatServerSortsNullInUtf8Order() throws IOException {
         assumeTrue(target.hasQuirk(KEYS_WITH_NULL_NOT_REJECTED));
-        assumeFalse(target.hasQuirk(KEYS_WITH_NULL_ARE_TRUNCATED));
 
         var nullEncoding = "\0".getBytes(UTF_8);
         var capitalAEncoding = "A".getBytes(UTF_8);
@@ -319,7 +319,7 @@ public class ObjectKeyTests extends S3TestBase {
         assertThat(status).as("Put object with non-null key is accepted").matches(s -> s / 100 == 2, "HTTP status of 2** or below");
 
         var keys = bucket.listObjectKeys(S3.ListObjectsVersion.V2);
-        assertThat(keys).containsExactly("with-null-byte-\0.key", "with-null-byte-A.key");
+        assertThat(keys).as("Keys should be sorted with null before A").containsExactly("with-null-byte-\0.key", "with-null-byte-A.key");
     }
 
     private String urlEncode(byte[]... chunks) {

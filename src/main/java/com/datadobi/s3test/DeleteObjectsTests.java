@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2025 Datadobi
+ *  Copyright Datadobi
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -40,10 +40,12 @@ public class DeleteObjectsTests extends S3TestBase {
         bucket.putObject("a", "Hello");
         bucket.putObject("b", "World");
         var deleteResponse = bucket.deleteObjects("a", "b");
-        assertTrue(deleteResponse.hasDeleted());
+        assertTrue("Delete response should have deleted objects", deleteResponse.hasDeleted());
+        var actualKeys = deleteResponse.deleted().stream().map(DeletedObject::key).sorted().toList();
         assertEquals(
+                "Deleted keys should match requested keys",
                 List.of("a", "b"),
-                deleteResponse.deleted().stream().map(DeletedObject::key).sorted().toList()
+                actualKeys
         );
     }
 
@@ -56,10 +58,12 @@ public class DeleteObjectsTests extends S3TestBase {
         bucket.putObject("a", "Hello");
         var headResponse = bucket.headObject("a");
         var deleteResponse = bucket.deleteObjects(oid -> oid.key("a").eTag(headResponse.eTag()));
-        assertTrue(deleteResponse.hasDeleted());
+        assertTrue("Delete response should have deleted objects with matching ETag", deleteResponse.hasDeleted());
+        var actualKeys = deleteResponse.deleted().stream().map(DeletedObject::key).sorted().toList();
         assertEquals(
+                "Deleted keys should match requested key with matching etag",
                 List.of("a"),
-                deleteResponse.deleted().stream().map(DeletedObject::key).sorted().toList()
+                actualKeys
         );
     }
 
@@ -74,10 +78,12 @@ public class DeleteObjectsTests extends S3TestBase {
             var etag = "\"foo\"";
             oid.key("a").eTag(etag);
         });
-        assertFalse(deleteResponse.hasDeleted());
+        assertFalse("Delete response should not have deleted objects with mismatched ETag", deleteResponse.hasDeleted());
+        var actualKeys = deleteResponse.deleted().stream().map(DeletedObject::key).sorted().toList();
         assertEquals(
+                "No objects should be deleted when etag does not match",
                 List.of(),
-                deleteResponse.deleted().stream().map(DeletedObject::key).sorted().toList()
+                actualKeys
         );
     }
 
@@ -90,10 +96,12 @@ public class DeleteObjectsTests extends S3TestBase {
         bucket.putObject("a..b", "Hello");
         bucket.putObject("c..d", "World");
         var deleteResponse = bucket.deleteObjects("a..b", "c..d");
-        assertTrue(deleteResponse.hasDeleted());
+        var actualKeys = deleteResponse.deleted().stream().map(DeletedObject::key).sorted().toList();
+        assertTrue("Delete response should have deleted objects with '..' in keys", deleteResponse.hasDeleted());
         assertEquals(
+                "Deleted keys should match requested keys with dot dot",
                 List.of("a..b", "c..d"),
-                deleteResponse.deleted().stream().map(DeletedObject::key).sorted().toList()
+                actualKeys
         );
     }
 }

@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2025 Datadobi
+ *  Copyright Datadobi
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ public class GetObjectTests extends S3TestBase {
 
         try (var objectInputStream = bucket.getObject("foo")) {
             var bytes = objectInputStream.readAllBytes();
-            assertEquals(fullContent, new String(bytes, StandardCharsets.UTF_8));
+            assertEquals("Object content should match uploaded content", fullContent, new String(bytes, StandardCharsets.UTF_8));
         }
     }
 
@@ -62,8 +62,8 @@ public class GetObjectTests extends S3TestBase {
 
         try (var objectInputStream = bucket.getObject("empty")) {
             var bytes = objectInputStream.readAllBytes();
-            assertEquals(0, bytes.length);
-            assertEquals(Long.valueOf(0L), objectInputStream.response().contentLength());
+            assertEquals("Empty object should have zero bytes", 0, bytes.length);
+            assertEquals("Empty object should have content length of zero", Long.valueOf(0L), objectInputStream.response().contentLength());
         }
     }
 
@@ -76,7 +76,7 @@ public class GetObjectTests extends S3TestBase {
         try (var objectInputStream = bucket.getObject("foo")) {
             fail("Should return HTTP 404");
         } catch (S3Exception e) {
-            assertEquals(404, e.statusCode());
+            assertEquals("Getting non-existent key should return 404", 404, e.statusCode());
         }
     }
 
@@ -97,11 +97,11 @@ public class GetObjectTests extends S3TestBase {
 
         try (var objectInputStream = bucket.getObject("foo", null, range)) {
             var bytes = objectInputStream.readAllBytes();
-            assertEquals("World!", new String(bytes, StandardCharsets.UTF_8));
+            assertEquals("Partial content should match requested range", "World!", new String(bytes, StandardCharsets.UTF_8));
 
             var response = objectInputStream.response();
-            assertEquals(contentRange.toString(), response.contentRange());
-            assertEquals(Long.valueOf(lastPos - startPos + 1), response.contentLength());
+            assertEquals("Content range should match requested range", contentRange.toString(), response.contentRange());
+            assertEquals("Content length should match range size", Long.valueOf(lastPos - startPos + 1), response.contentLength());
         }
     }
 
@@ -118,7 +118,7 @@ public class GetObjectTests extends S3TestBase {
             bucket.getObject("foo", null, new Range("bytes", ImmutableList.of(new RangeSpec(200L, null))));
             fail("Should return HTTP 416");
         } catch (S3Exception e) {
-            assertEquals(416, e.statusCode());
+            assertEquals("Unsatisfiable range should return 416", 416, e.statusCode());
         }
     }
 
@@ -139,11 +139,11 @@ public class GetObjectTests extends S3TestBase {
 
         try (var objectInputStream = bucket.getObject("foo", null, range)) {
             var bytes = objectInputStream.readAllBytes();
-            assertEquals("Hello", new String(bytes, StandardCharsets.UTF_8));
+            assertEquals("Partial content should match requested range with end position", "Hello", new String(bytes, StandardCharsets.UTF_8));
 
             var response = objectInputStream.response();
-            assertEquals(contentRange.toString(), response.contentRange());
-            assertEquals(Long.valueOf(endPos - startPos + 1), response.contentLength());
+            assertEquals("Content range should match requested range with end position", contentRange.toString(), response.contentRange());
+            assertEquals("Content length should match range size with end position", Long.valueOf(endPos - startPos + 1), response.contentLength());
         }
     }
 
@@ -164,11 +164,11 @@ public class GetObjectTests extends S3TestBase {
 
         try (var objectInputStream = bucket.getObject("foo", null, range)) {
             var bytes = objectInputStream.readAllBytes();
-            assertEquals("World", new String(bytes, StandardCharsets.UTF_8));
+            assertEquals("Partial content should match middle range", "World", new String(bytes, StandardCharsets.UTF_8));
 
             var response = objectInputStream.response();
-            assertEquals(contentRange.toString(), response.contentRange());
-            assertEquals(Long.valueOf(endPos - startPos + 1), response.contentLength());
+            assertEquals("Content range should match middle range", contentRange.toString(), response.contentRange());
+            assertEquals("Content length should match middle range size", Long.valueOf(endPos - startPos + 1), response.contentLength());
         }
     }
 
@@ -186,7 +186,7 @@ public class GetObjectTests extends S3TestBase {
 
         try (var objectInputStream = bucket.getObject("foo", null, range)) {
             var bytes = objectInputStream.readAllBytes();
-            assertEquals("World!", new String(bytes, StandardCharsets.UTF_8));
+            assertEquals("Partial content should match last bytes", "World!", new String(bytes, StandardCharsets.UTF_8));
         }
     }
 
@@ -207,7 +207,7 @@ public class GetObjectTests extends S3TestBase {
         try (var objectInputStream = bucket.getObject("foo", null, range)) {
             var bytes = objectInputStream.readAllBytes();
             // Should return from startPos to end of file
-            assertEquals("ld!", new String(bytes, StandardCharsets.UTF_8));
+            assertEquals("Range beyond end should return from start to actual end", "ld!", new String(bytes, StandardCharsets.UTF_8));
         }
     }
 }
